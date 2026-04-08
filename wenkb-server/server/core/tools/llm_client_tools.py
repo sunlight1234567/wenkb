@@ -1,4 +1,5 @@
 from logger import logger
+from openai import OpenAI
 from langchain_openai import ChatOpenAI
 from langchain_community.llms import Ollama
 from langchain_community.embeddings import HuggingFaceEmbeddings, OllamaEmbeddings, OpenAIEmbeddings
@@ -22,6 +23,45 @@ MODEL_ARGS_CACHE = TTLCache(maxsize=100, ttl=60)
 LLM_CLIENT_CACHE = TTLCache(maxsize=100, ttl=60)
 EMBEDDING_FUNCTION_CACHE = TTLCache(maxsize=100, ttl=60)
 
+
+class DeepseekChat:
+  """使用 OpenAI 官方 SDK 调用 DeepSeek 的简单适配器，避免 ChatOpenAI 与 openai 版本不兼容问题。"""
+  def __init__(self, model: str, base_url: str | None, api_key: str | None, temperature: float = 0.1):
+    if base_url is None:
+      base_url = LLM_BASE_URLS.get('deepseek')
+    self.model = model
+    self.temperature = temperature
+    # 不传入 proxies 等参数，避免 Client.__init__ 参数不兼容
+    self.client = OpenAI(api_key=api_key, base_url=base_url)
+
+  def invoke(self, prompts: str):
+    resp = self.client.chat.completions.create(
+      model=self.model,
+      messages=[{"role": "user", "content": prompts}],
+      temperature=self.temperature,
+      stream=False,
+    )
+    return resp.choices[0].message.content
+
+  def stream(self, input: str):
+    """保持与 ChatOpenAI.stream(input=...) 相同的参数名。"""
+    completion = self.client.chat.completions.create(
+      model=self.model,
+      messages=[{"role": "user", "content": input}],
+      temperature=self.temperature,
+      stream=True,
+    )
+    for chunk in completion:
+      choice = chunk.choices[0]
+      delta = getattr(choice, "delta", None)
+      if delta is not None:
+        content = delta.content or ""
+      else:
+        # 兼容老字段结构
+        content = choice.message.content or ""
+      if content:
+        yield content
+
 class LLMClient:
   def __init__(self, userId: str = None, modlId: str = None, temperature: float = 0.1):
     self.temperature = temperature
@@ -32,6 +72,8 @@ class LLMClient:
   def get_llm_client(self):
     if self.provider == 'ollama':
       return Ollama(model=self.model, base_url=self.args.get('base_url', None), temperature=self.temperature)
+    if self.provider == 'deepseek':
+      return DeepseekChat(model=self.model, base_url=self.args.get('base_url', None), api_key=self.args.get('api_key', None), temperature=self.temperature)
     else:
       return ChatOpenAI(model=self.model, base_url=self.args.get('base_url', None), api_key=self.args.get('api_key', None), temperature=self.temperature)
   def invoke(self, prompts: str):

@@ -99,7 +99,9 @@ def file_to_documents(doc_path: str) -> list:
   elif (is_word(doc_path)):
     loader = UnstructuredWordDocumentLoader(file_path=doc_path)
   else:
-    loader = TextLoader(doc_path, autodetect_encoding=True)
+    # 直接按 UTF-8 读取文本，避免新版 chardet 返回包含 mime_type 字段
+    # 与 langchain_community.helpers.FileEncoding 不兼容导致的错误
+    loader = TextLoader(doc_path, encoding='utf-8')
   documents = loader.load()
   # textsplitter = ChineseTextSplitter(pdf=pdf, sentence_size=CHUNK_SIZE)
   if (is_markdown(doc_path)):

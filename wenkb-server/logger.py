@@ -6,6 +6,7 @@
 # @File    : logger.py
 # @describe:
 """
+import os
 import colorlog
 import logging
 from logging.handlers import TimedRotatingFileHandler
@@ -14,10 +15,15 @@ from logging.handlers import TimedRotatingFileHandler
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
 
+# 日志目录，若不存在则创建
+LOG_DIR = 'resources/logs'
+os.makedirs(LOG_DIR, exist_ok=True)
+LOG_FILE = os.path.join(LOG_DIR, 'app.log')
+
 # 创建handler
 stream_handler = logging.StreamHandler()
 # 创建TimedRotatingFileHandler对象,每天生成一个文件，共备份10个文件
-file_handler = TimedRotatingFileHandler(filename='resources/logs/app.log', when='D', interval=1, backupCount=10, encoding='utf-8')
+file_handler = TimedRotatingFileHandler(filename=LOG_FILE, when='D', interval=1, backupCount=10, encoding='utf-8')
 
 # 创建带颜色的formatter
 formatter = colorlog.ColoredFormatter(

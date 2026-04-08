@@ -3,9 +3,9 @@ from Crypto.Cipher import AES
 from Crypto.Util.Padding import pad, unpad
 import hashlib
 
-AES_KEY = 'xxxx'
-AES_IV = 'xxxx'
-SHA256_SALT = 'xxxx'
+AES_KEY = 'sunlight0x4B7xxx'
+AES_IV = 'sunlight0x4B7xxx'
+SHA256_SALT = 'sunlight0x4B7xxx'
 DEFAULT_ENCODING = 'utf-8'
 
 def sha256_encrypt(text):

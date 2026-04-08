@@ -26,7 +26,7 @@
   import { invoke } from '@tauri-apps/api/core'
   import { Window } from '@tauri-apps/api/window'
   import { getCurrentWebviewWindow } from '@tauri-apps/api/webviewWindow'
-  import { defineComponent, getCurrentInstance } from 'vue'
+  import { defineComponent, getCurrentInstance, ref } from 'vue'
   import { useTheme } from '@/mixin/app'
   import MND from './components/MND.vue'
   
@@ -37,13 +37,23 @@
     setup() {
       const { proxy, ctx } = getCurrentInstance()
       const {themeOverrides, themeType, zhCN, dateZhCN} = useTheme()
-      const key = ref(0)
-      const appWebview = getCurrentWebviewWindow()
-      appWebview.listen('on-server-started', (event) => {
-        console.log(event.payload)
-        key.value = 1
-      })
-      const appWindow = new Window('main')
+      const key = ref(1)
+
+      // 在 Tauri 环境下才使用窗口 API；浏览器环境下提供空实现，避免报错
+      let appWindow = {
+        minimize() {},
+        toggleMaximize() {},
+        close() {}
+      }
+
+      if (typeof window !== 'undefined' && window.__TAURI_INTERNALS && window.__TAURI_INTERNALS.metadata) {
+        const appWebview = getCurrentWebviewWindow()
+        appWebview.listen('on-server-started', (event) => {
+          console.log(event.payload)
+          key.value = 1
+        })
+        appWindow = new Window('main')
+      }
       return {
         key,
         themeOverrides, themeType, zhCN, dateZhCN,
